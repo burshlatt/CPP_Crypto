@@ -15,6 +15,9 @@ namespace fs = std::filesystem;
 namespace s21 {
 class Enigma {
 public:
+    using size_type = std::size_t;
+
+public:
     Enigma() = default;
 
     explicit Enigma(uint8_t num) : num_rotors_(num) {
@@ -27,17 +30,15 @@ public:
 
     ~Enigma() = default;
 
-    void SetReflector(const std::vector<uint8_t>& ref) {
-        for (int i = 0; i < alphabet_size_; ++i)
-            reflector_[i] = ref[i];
-    }
+    // void SetReflector(const std::vector<uint8_t>& ref) {
+    //     for (int i = 0; i < alphabet_size_; ++i)
+    //         reflector_[i] = ref[i];
+    // }
 
-    void SetRotor(uint8_t num, const std::vector<uint8_t>& rotor) {
-        for (int i = 0; i < alphabet_size_; ++i)
-            rotors_[num][i] = rotor[i];
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // void SetRotor(uint8_t num, const std::vector<uint8_t>& rotor) {
+    //     for (int i = 0; i < alphabet_size_; ++i)
+    //         rotors_[num][i] = rotor[i];
+    // }
 
     // Функция обычного сдвига массива на одну единицу вправо.
     void RotorShift(uint8_t num) {
@@ -56,8 +57,6 @@ public:
 
         return -1;
     }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     void Encode(std::string_view path) {
         // std::ifstream file(fs::path(path), std::ios::in);
@@ -141,9 +140,11 @@ private:
 private:
     uint64_t counter_{};
     uint8_t num_rotors_{};
-    std::vector<uint8_t> reflector_;
     std::vector<Rotor> rotors_;
-    static constexpr const uint8_t alphabet_size_{128};
+
+    std::vector<uint8_t> reflector_;
+    
+    static constexpr const size_type alphabet_size_{128};
 };
 } // namespace s21
 
