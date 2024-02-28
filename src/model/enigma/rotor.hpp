@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 
-// #include "console_tools.hpp"
-#include "../../extern/tools/src/tools.hpp"
+// #include "tools.hpp"
+#include "../../third_party/tools/src/tools.hpp"
 
 namespace s21 {
 class Rotor {
