@@ -19,12 +19,35 @@ public:
 
     ~Rotor() = default;
 
+public:
     uint8_t& operator[](int index) {
+        return rotor_[index];
+    }
+
+    uint8_t operator[](int index) const {
         return rotor_[index];
     }
 
     [[nodiscard]] size_type Size() const noexcept {
         return size_;
+    }
+
+public:
+    void Shift() {
+        uint8_t tmp{rotor_[size_ - 1]};
+
+        for (size_type i{size_ - 1}; i > 0; --i)
+            rotor_[i] = rotor_[i - 1];
+
+        rotor_[0] = tmp;
+    }
+
+    uint8_t Find(uint8_t code) {
+        for (size_type i{}; i < size_; ++i)
+            if (rotor_[i] == code)
+                return i;
+
+        throw std::invalid_argument("Incorrect code: " + std::to_string(code));
     }
 
 private:

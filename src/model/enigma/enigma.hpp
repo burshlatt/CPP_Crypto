@@ -10,6 +10,9 @@
 
 #include "rotor.hpp"
 
+// #include "tools.hpp"
+#include "../../third_party/tools/src/tools.hpp"
+
 namespace fs = std::filesystem;
 
 namespace s21 {
@@ -18,9 +21,9 @@ public:
     using size_type = std::size_t;
 
 public:
-    Enigma() = default;
+    Enigma() : Enigma(1) {}
 
-    explicit Enigma(uint8_t num) : num_rotors_(num) {
+    explicit Enigma(uint8_t num_rot) : num_rotors_(num_rot) {
         std::vector<uint8_t> tmp_reflector_(alphabet_size_);
         reflector_ = std::move(tmp_reflector_);
         
@@ -30,6 +33,7 @@ public:
 
     ~Enigma() = default;
 
+public:
     // void SetReflector(const std::vector<uint8_t>& ref) {
     //     for (int i = 0; i < alphabet_size_; ++i)
     //         reflector_[i] = ref[i];
@@ -40,90 +44,42 @@ public:
     //         rotors_[num][i] = rotor[i];
     // }
 
-    // Функция обычного сдвига массива на одну единицу вправо.
-    void RotorShift(uint8_t num) {
-        char temp = rotors_[num][alphabet_size_-1];
-        for (int i = alphabet_size_-1; i > 0; --i) {
-            rotors_[num][i] = rotors_[num][i-1];
-        }
-        rotors_[num][0] = temp;
-    }
-
-    // Функция обычного нахождения элемента в массиве.
-    uint8_t RotorFind(uint8_t num, uint8_t code) {
-        for (int i = 0; i < alphabet_size_; ++i)
-            if (rotors_[num][i] == code)
-                return i;
-
-        return -1;
-    }
-
     void Encode(std::string_view path) {
-        // std::ifstream file(fs::path(path), std::ios::in);
-        std::ifstream file(fs::path(path), std::ios::binary | std::ios::in);
-        if (file.is_open()) {
-            // std::string line;
-            // while (file >> line) {}
+        auto file{fsm_.read_file(path)};
+        size_type size{file.size()};
+        std::unique_ptr<uint8_t[]> cipher{std::make_unique<uint8_t[]>(size)};
 
-            file.seekg(0, std::ios::end);
-            std::size_t file_size = file.tellg();
-            file.seekg(0, std::ios::beg);
-            char *buffer = new char[file_size]{};
-            file.read(buffer, file_size);
+        for (size_type i{}; i < size; ++i)
+            cipher[i] = Encrypt(static_cast<uint8_t>(file[i]));
 
-            char *cipher = new char[file_size]{};
-            for (std::size_t i{}; i < file_size; ++i) {
-                uint8_t new_code = buffer[i]; 
-                // Проходим сквозь все роторы в сторону рефлектора, постоянно обновляя состояние символа.
-                // Символ в такой концепции представляет собой индекс массива, по которому находим новый символ как значение массива.
-                for (int i = 0; i < num_rotors_; ++i)
-                    new_code = rotors_[i][new_code];
-
-                // Получаем новое состояние символа от рефлектора.
-                new_code = reflector_[new_code];
-
-                // Теперь проходим сквозь все роторы, но уже от рефлектора, также постоянно обновляя состояние символа.
-                // Символ в такой концепции представляет собой значение массива, по которому находим новый символ как индекс массива.
-                for (int i = num_rotors_ - 1; i >= 0; --i) {
-                    new_code = RotorFind(i, new_code);
-                    if (new_code == -1)
-                        return;
-                }
-
-                // После того, как прошли по роторам в сторону рефлектора и обратно
-                // настало время обновить состояние самих роторов, их позицию.
-                // Увеличиваем счётчик шифрованных символов и устанавливаем
-                // по умолчанию очередь ротора = 1. 
-                // Это говорит о том, что первый ротор должен обновлять своё состояние
-                // каждый введённый символ.
-                uint64_t rotor_queue = 1;
-                counter_ += 1;
-                for (int i = 0; i < num_rotors_; ++i) {
-                    // Обновляем состояние ротора по его очереди.
-                    if (counter_ % rotor_queue == 0)
-                        RotorShift(i);
-                    // Увеличиваем очередь каждого последующего ротора, т.к.
-                    // поворот одного ротора должен производиться только после полного
-                    // цикла предыдущего ротора.
-                    rotor_queue *= alphabet_size_;
-                }
-
-                cipher[i] = new_code;
-            }
-
-            delete buffer;
-            buffer = nullptr;
-
-            SaveFile(path, cipher);
-
-            delete cipher;
-            cipher = nullptr;
-        }
-        file.close();
+        // SaveCipherFile(path, cipher);
     }
 
 private:
-    void SaveFile(std::string_view path, const char* cipher) {
+    uint8_t Encrypt(uint8_t code) {
+        uint8_t new_code{code}; 
+
+        for (int i{}; i < num_rotors_; ++i)
+            new_code = rotors_[i][new_code];
+
+        new_code = reflector_[new_code];
+
+        for (int i{num_rotors_ - 1}; i >= 0; --i)
+            new_code = rotors_[i].Find(new_code);
+
+        counter_ += 1;
+        uint64_t rotor_queue{1};
+        for (int i{}; i < num_rotors_; ++i) {
+            if (counter_ % rotor_queue == 0)
+                rotors_[i].Shift();
+
+            rotor_queue *= alphabet_size_;
+        }
+
+        return new_code;
+    }
+
+    void SaveCipherFile(std::string_view path, const char* cipher) {
         std::string filename(path);
         auto pos{filename.find_last_of(".")};
         if (pos != std::string_view::npos)
@@ -145,6 +101,8 @@ private:
     std::vector<uint8_t> reflector_;
     
     static constexpr const size_type alphabet_size_{128};
+
+    tools::filesystem::monitoring fsm_;
 };
 } // namespace s21
 
