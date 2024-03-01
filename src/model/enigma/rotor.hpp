@@ -14,18 +14,18 @@ public:
 
 public:
     Rotor() {
-        tools::random::shuffle(rotor_.begin(), rotor_.end());
+        tools::random::shuffle(data_.begin(), data_.end());
     }
 
     ~Rotor() = default;
 
 public:
-    uint8_t& operator[](int index) {
-        return rotor_[index];
+    char& operator[](int index) {
+        return data_[index];
     }
 
-    uint8_t operator[](int index) const {
-        return rotor_[index];
+    char operator[](int index) const {
+        return data_[index];
     }
 
     [[nodiscard]] size_type Size() const noexcept {
@@ -34,24 +34,29 @@ public:
 
 public:
     void Shift() {
-        uint8_t tmp{rotor_[size_ - 1]};
+        char tmp{data_[size_ - 1]};
 
-        for (size_type i{size_ - 1}; i > 0; --i)
-            rotor_[i] = rotor_[i - 1];
+        for (size_type i{size_ - 1}; i > 0; i--)
+            data_[i] = data_[i - 1];
 
-        rotor_[0] = tmp;
+        data_[0] = tmp;
     }
 
-    uint8_t Find(uint8_t code) {
-        for (size_type i{}; i < size_; ++i)
-            if (rotor_[i] == code)
+    char Find(char code) {
+        for (size_type i{}; i < size_; i++)
+            if (data_[i] == code)
                 return i;
 
         throw std::invalid_argument("Incorrect code: " + std::to_string(code));
     }
 
+public:
+    // void LoadConfig() {
+
+    // }
+
 private:
-    std::vector<uint8_t> rotor_{
+    std::vector<char> data_ {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
         11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
         21, 22, 23, 24, 25, 26, 27, 28, 29, 30,

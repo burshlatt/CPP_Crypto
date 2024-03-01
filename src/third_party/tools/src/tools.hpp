@@ -204,7 +204,7 @@ public:
         path_(fs::current_path() / "temporary_file.txt")
     {}
 
-    explicit file_t(path_reference path) {
+    explicit file_t(path_reference path) : file_t() {
         set_path(path);
     }
 
@@ -216,12 +216,12 @@ public:
         set_text(text, size);
     }
 
-    explicit file_t(path_reference path, string_reference text) {
+    explicit file_t(path_reference path, string_reference text) : file_t() {
         set_path(path);
         set_text(text);
     }
 
-    explicit file_t(path_reference path, const char* text, size_type size) {
+    explicit file_t(path_reference path, const char* text, size_type size) : file_t() {
         set_path(path);
         set_text(text, size);
     }
@@ -245,6 +245,10 @@ public:
         set_path(fs::path(path));
     }
 
+    void set_filename(string_reference name) {
+        path_.replace_filename(fs::path(name));
+    }
+
     void set_text(string_reference text) {
         text_ = text;
         size_ = text.size();
@@ -263,6 +267,12 @@ public:
 
     std::string get_path() const { return path_.generic_string(); }
 
+    fs::path get_dir_fs() const { return path_.parent_path(); }
+
+    std::string get_dir() const { return path_.parent_path().generic_string(); }
+
+    std::string get_filename() const { return path_.filename().generic_string(); }
+
 public:
     char& operator[](int index) {
         return text_[index];
@@ -273,7 +283,13 @@ public:
     }
 
 public:
-    [[nodiscard]] std::size_t size() const noexcept { return size_; }
+    std::size_t size() const noexcept { return size_; }
+
+    bool empty() const noexcept { return !size_; }
+
+    bool exists() const noexcept {
+        return fs::exists(path_) && !fs::is_directory(path_);
+    }
 
 private:
     std::size_t size_{};
@@ -314,9 +330,7 @@ public:
             throw std::ios_base::failure(error_text + filename);
         }
 
-        file_t new_file(path, buffer.get(), file_size);
-
-        return new_file;
+        return file_t(path, buffer.get(), file_size);
     }
 
     file_t read_file(string_reference path) const {
@@ -327,26 +341,19 @@ public:
         file = read_file(file.get_path_fs());
     }
 
-    void create_file(path_reference path) const {
-        fs::path tmp_path(path);
-        tmp_path = tmp_path.remove_filename();
-        if (fs::exists(tmp_path)) {
-            fs::path new_file{path};
-            if (fs::is_directory(path))
-                new_file /= "temporary_file.txt";
+    void write_file(path_reference path, std::string_view text) const {
+        if (!fs::exists(path) || fs::is_directory(path))
+            return;
 
-            std::ofstream file_stream(new_file, std::ios::out);
+        std::ofstream file_stream(path, std::ios::out);
 
-            if (!file_stream.is_open()) {
-                std::string error_text{"Error: Cannot create file: "};
-                std::string filename{new_file.filename().generic_string()};
-                throw std::ios_base::failure(error_text + filename);
-            }
+        if (file_stream.is_open()) {
+            file_stream << text;
+        } else {
+            std::string error_text{"Error: Cannot open file: "};
+            std::string filename{path.filename().generic_string()};
+            throw std::ios_base::failure(error_text + filename);
         }
-    }
-
-    void create_file(string_reference file_path) const {
-        create_file(fs::path(file_path));
     }
 
     void create_file(const file_t& file) const {
@@ -360,6 +367,14 @@ public:
             std::string filename{path.filename().generic_string()};
             throw std::ios_base::failure(error_text + filename);
         }
+    }
+
+    void create_file(path_reference path) const {
+        create_file(file_t(path));
+    }
+
+    void create_file(string_reference path) const {
+        create_file(fs::path(path));
     }
 
 public:

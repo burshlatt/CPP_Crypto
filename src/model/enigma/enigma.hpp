@@ -4,11 +4,10 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <fstream>
-#include <filesystem>
 #include <string_view>
 
 #include "rotor.hpp"
+#include "reflector.hpp"
 
 // #include "tools.hpp"
 #include "../../third_party/tools/src/tools.hpp"
@@ -20,56 +19,53 @@ class Enigma {
 public:
     using size_type = std::size_t;
 
+private:
+    using file_t = tools::filesystem::file_t;
+
 public:
     Enigma() : Enigma(1) {}
 
-    explicit Enigma(uint8_t num_rot) : num_rotors_(num_rot) {
-        std::vector<uint8_t> tmp_reflector_(alphabet_size_);
-        reflector_ = std::move(tmp_reflector_);
-        
-        std::vector<Rotor> tmp_rotors_(num_rotors_);
-        rotors_ = std::move(tmp_rotors_);
+    explicit Enigma(uint8_t num_rotors) {
+        std::vector<Rotor> tmp_rotors(num_rotors);
+        rotors_ = std::move(tmp_rotors);
+
+        configs_ = Configs(counter_, reflector_, rotors_);
     }
 
     ~Enigma() = default;
 
 public:
-    // void SetReflector(const std::vector<uint8_t>& ref) {
-    //     for (int i = 0; i < alphabet_size_; ++i)
-    //         reflector_[i] = ref[i];
-    // }
-
-    // void SetRotor(uint8_t num, const std::vector<uint8_t>& rotor) {
-    //     for (int i = 0; i < alphabet_size_; ++i)
-    //         rotors_[num][i] = rotor[i];
-    // }
-
-    void Encode(std::string_view path) {
+    void EncryptFile(std::string_view path) {
+        ResetConfig();
         auto file{fsm_.read_file(path)};
-        size_type size{file.size()};
-        std::unique_ptr<uint8_t[]> cipher{std::make_unique<uint8_t[]>(size)};
+        if (!file.empty()) {
+            size_type size{file.size()};
+            std::vector<char> encoded(size);
 
-        for (size_type i{}; i < size; ++i)
-            cipher[i] = Encrypt(static_cast<uint8_t>(file[i]));
+            for (size_type i{}; i < size; i++)
+                encoded[i] = Encrypt(file[i]);
 
-        // SaveCipherFile(path, cipher);
+            SaveFile(path, "_encoded", encoded);
+        }
     }
 
 private:
-    uint8_t Encrypt(uint8_t code) {
-        uint8_t new_code{code}; 
+    char Encrypt(char code) {
+        char new_code{code};
 
-        for (int i{}; i < num_rotors_; ++i)
+        int num_rotors{static_cast<int>(rotors_.size())};
+
+        for (int i{}; i < num_rotors; i++)
             new_code = rotors_[i][new_code];
 
         new_code = reflector_[new_code];
 
-        for (int i{num_rotors_ - 1}; i >= 0; --i)
+        for (int i{num_rotors - 1}; i >= 0; i--)
             new_code = rotors_[i].Find(new_code);
 
-        counter_ += 1;
+        ++counter_;
         uint64_t rotor_queue{1};
-        for (int i{}; i < num_rotors_; ++i) {
+        for (int i{}; i < num_rotors; i++) {
             if (counter_ % rotor_queue == 0)
                 rotors_[i].Shift();
 
@@ -79,30 +75,57 @@ private:
         return new_code;
     }
 
-    void SaveCipherFile(std::string_view path, const char* cipher) {
+private:
+    void SaveFile(std::string_view path, std::string_view postfix, const std::vector<char>& cipher) {
         std::string filename(path);
         auto pos{filename.find_last_of(".")};
         if (pos != std::string_view::npos)
-            filename = filename.substr(0, pos) + "_encoded" + filename.substr(pos);
+            filename.insert(pos, postfix);
+        else
+            filename += postfix;
 
-        std::ofstream file(fs::path(filename), std::ios::out);
+        fs::path full_path(filename);
+        size_type size{cipher.size()};
 
-        if (file.is_open())
-            file << cipher;
-
-        file.close();
+        fsm_.create_file(file_t(full_path, cipher.data(), size));
     }
 
 private:
-    uint64_t counter_{};
-    uint8_t num_rotors_{};
-    std::vector<Rotor> rotors_;
+    void ResetConfig() {
+        counter_ = configs_.counter_conf;
+        reflector_ = configs_.reflector_conf;
+        rotors_ = configs_.rotors_conf;
+    }
 
-    std::vector<uint8_t> reflector_;
+    // void LoadConfig() {
+        
+    // }
+
+private:
+    struct Configs {
+        Configs() = default;
+
+        Configs(uint64_t c, Reflector ref, const std::vector<Rotor>& rot) :
+            counter_conf(c),
+            reflector_conf(ref),
+            rotors_conf(rot)
+        {}
+
+        ~Configs() = default;
+
+        uint64_t counter_conf{};
+        Reflector reflector_conf;
+        std::vector<Rotor> rotors_conf;
+    };
     
-    static constexpr const size_type alphabet_size_{128};
 
+private:
+    Configs configs_;
+    uint64_t counter_{};
+    Reflector reflector_;
+    std::vector<Rotor> rotors_;
     tools::filesystem::monitoring fsm_;
+    static constexpr const size_type alphabet_size_{128};
 };
 } // namespace s21
 
