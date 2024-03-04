@@ -2,10 +2,8 @@
 #define CRYPTO_MODEL_ENIGMA_ROTOR_HPP
 
 #include <vector>
-#include <memory>
 
-// #include "tools.hpp"
-#include "../../third_party/tools/src/tools.hpp"
+#include "tools.hpp"
 
 namespace s21 {
 class Rotor {
@@ -17,6 +15,10 @@ public:
         tools::random::shuffle(data_.begin(), data_.end());
     }
 
+    explicit Rotor(const std::vector<char>& config) {
+        data_ = config;
+    }
+
     ~Rotor() = default;
 
 public:
@@ -26,10 +28,6 @@ public:
 
     char operator[](int index) const {
         return data_[index];
-    }
-
-    [[nodiscard]] size_type Size() const noexcept {
-        return size_;
     }
 
 public:
@@ -49,11 +47,6 @@ public:
 
         throw std::invalid_argument("Incorrect code: " + std::to_string(code));
     }
-
-public:
-    // void LoadConfig() {
-
-    // }
 
 private:
     std::vector<char> data_ {

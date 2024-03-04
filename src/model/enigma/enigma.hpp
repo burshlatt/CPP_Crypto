@@ -4,13 +4,14 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
+#include <sstream>
 #include <string_view>
+
+#include "tools.hpp"
 
 #include "rotor.hpp"
 #include "reflector.hpp"
-
-// #include "tools.hpp"
-#include "../../third_party/tools/src/tools.hpp"
 
 namespace fs = std::filesystem;
 
@@ -28,8 +29,12 @@ public:
     explicit Enigma(uint8_t num_rotors) {
         std::vector<Rotor> tmp_rotors(num_rotors);
         rotors_ = std::move(tmp_rotors);
+        num_rotors_ = static_cast<int>(rotors_.size());
+        config_ = Config(reflector_, rotors_);
+    }
 
-        configs_ = Configs(counter_, reflector_, rotors_);
+    explicit Enigma(std::string_view path) {
+        LoadConfig(path);
     }
 
     ~Enigma() = default;
@@ -45,38 +50,43 @@ public:
             for (size_type i{}; i < size; i++)
                 encoded[i] = Encrypt(file[i]);
 
-            SaveFile(path, "_encoded", encoded);
+            auto encoded_pos{path.rfind("_encoded")};
+            auto decoded_pos{path.rfind("_decoded")};
+            if (encoded_pos == std::string::npos)
+                SaveFile(path, "_encoded", encoded);
+            else if (decoded_pos == std::string::npos)
+                SaveFile(path, "_decoded", encoded);
+            else if (encoded_pos < decoded_pos)
+                SaveFile(path, "_encoded", encoded);
+            else if (encoded_pos > decoded_pos)
+                SaveFile(path, "_decoded", encoded);
         }
     }
 
 private:
     char Encrypt(char code) {
-        char new_code{code};
+        for (int i{}; i < num_rotors_; i++)
+            code = rotors_[i][code];
 
-        int num_rotors{static_cast<int>(rotors_.size())};
+        code = reflector_[code];
 
-        for (int i{}; i < num_rotors; i++)
-            new_code = rotors_[i][new_code];
-
-        new_code = reflector_[new_code];
-
-        for (int i{num_rotors - 1}; i >= 0; i--)
-            new_code = rotors_[i].Find(new_code);
+        for (int i{num_rotors_ - 1}; i >= 0; i--)
+            code = rotors_[i].Find(code);
 
         ++counter_;
         uint64_t rotor_queue{1};
-        for (int i{}; i < num_rotors; i++) {
+        for (int i{}; i < num_rotors_; i++) {
             if (counter_ % rotor_queue == 0)
                 rotors_[i].Shift();
 
             rotor_queue *= alphabet_size_;
         }
 
-        return new_code;
+        return code;
     }
 
 private:
-    void SaveFile(std::string_view path, std::string_view postfix, const std::vector<char>& cipher) {
+    void SaveFile(std::string_view path, std::string postfix, const std::vector<char>& cipher) {
         std::string filename(path);
         auto pos{filename.find_last_of(".")};
         if (pos != std::string_view::npos)
@@ -92,36 +102,63 @@ private:
 
 private:
     void ResetConfig() {
-        counter_ = configs_.counter_conf;
-        reflector_ = configs_.reflector_conf;
-        rotors_ = configs_.rotors_conf;
+        counter_ = uint64_t();
+        reflector_ = config_.reflector_conf;
+        rotors_ = config_.rotors_conf;
     }
 
-    // void LoadConfig() {
-        
-    // }
+    void LoadConfig(std::string_view path) {
+        fs::path fs_path(path);
+        std::ifstream file(fs_path, std::ios::in);
+
+        if (!file.is_open()) {
+            std::string error_text{"Error: Cannot open file: "};
+            std::string filename{fs_path.filename().generic_string()};
+            throw std::ios_base::failure(error_text + filename);
+        }
+
+        std::string line;
+
+        while (std::getline(file, line)) {
+            std::stringstream substring_stream(line);
+            int i{};
+            int code{};
+            std::vector<char> tmp_cfg(128);
+
+            while (substring_stream >> code) {
+                tmp_cfg[i] = static_cast<char>(code);
+                ++i;
+            }
+
+            Rotor rotor(tmp_cfg);
+            rotors_.push_back(rotor);
+        }
+
+        num_rotors_ = static_cast<int>(rotors_.size());
+        config_ = Config(reflector_, rotors_);
+    }
 
 private:
-    struct Configs {
-        Configs() = default;
+    struct Config {
+        Config() = default;
 
-        Configs(uint64_t c, Reflector ref, const std::vector<Rotor>& rot) :
-            counter_conf(c),
-            reflector_conf(ref),
+        Config(const Reflector& refl, const std::vector<Rotor>& rot) :
+            reflector_conf(refl),
             rotors_conf(rot)
         {}
 
-        ~Configs() = default;
+        ~Config() = default;
 
-        uint64_t counter_conf{};
         Reflector reflector_conf;
         std::vector<Rotor> rotors_conf;
     };
     
-
 private:
-    Configs configs_;
+    Config config_;
+
+    int num_rotors_{};
     uint64_t counter_{};
+
     Reflector reflector_;
     std::vector<Rotor> rotors_;
     tools::filesystem::monitoring fsm_;

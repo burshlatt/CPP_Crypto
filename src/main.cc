@@ -1,18 +1,18 @@
 #include <iostream>
 
-#include "model/enigma/enigma.hpp"
+#include "console_view.hpp"
 
-int main() {
+// int main() {
+//     s21::ConsoleView app;
+//     app.RunApp();
+//     return 0;
+// }
+
+int main () {
+    int x{};
+    std::cin >> x;
+    s21::Enigma en(x);
     tools::filesystem::monitoring fsm;
-    s21::Enigma enigma(10);
-
-    while (true) {
-        std::string path{fsm.get_file_path()};
-
-        if (path.empty())
-            break;
-
-        enigma.EncryptFile(path);
-    }
+    en.EncryptFile(fsm.get_file_path());
     return 0;
 }

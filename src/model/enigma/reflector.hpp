@@ -2,11 +2,8 @@
 #define CRYPTO_MODEL_ENIGMA_REFLECTOR_HPP
 
 #include <vector>
-#include <memory>
-#include <fstream>
 
-// #include "tools.hpp"
-#include "../../third_party/tools/src/tools.hpp"
+#include "tools.hpp"
 
 namespace s21 {
 class Reflector {
@@ -28,15 +25,6 @@ public:
     char operator[](int index) const {
         return data_[index];
     }
-
-    [[nodiscard]] size_type Size() const noexcept {
-        return size_;
-    }
-
-public:
-    // void LoadConfig() {
-
-    // }
 
 private:
     std::vector<char> data_ {

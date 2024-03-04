@@ -345,7 +345,7 @@ public:
         if (!fs::exists(path) || fs::is_directory(path))
             return;
 
-        std::ofstream file_stream(path, std::ios::out);
+        std::ofstream file_stream(path, std::ios::app);
 
         if (file_stream.is_open()) {
             file_stream << text;
