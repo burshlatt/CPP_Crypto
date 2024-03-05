@@ -13,8 +13,6 @@
 #include "rotor.hpp"
 #include "reflector.hpp"
 
-namespace fs = std::filesystem;
-
 namespace s21 {
 class Enigma {
 public:
@@ -26,10 +24,9 @@ private:
 public:
     Enigma() : Enigma(1) {}
 
-    explicit Enigma(uint8_t num_rotors) {
+    explicit Enigma(int num_rotors) {
         std::vector<Rotor> tmp_rotors(num_rotors);
         rotors_ = std::move(tmp_rotors);
-        num_rotors_ = static_cast<int>(rotors_.size());
         config_ = Config(reflector_, rotors_);
     }
 
@@ -40,53 +37,49 @@ public:
     ~Enigma() = default;
 
 public:
-    void EncryptFile(std::string_view path) {
+    void Encrypt(std::string_view path) {
         ResetConfig();
+        
         auto file{fsm_.read_file(path)};
         if (!file.empty()) {
             size_type size{file.size()};
             std::vector<char> encoded(size);
+            int num_rotors{static_cast<int>(rotors_.size())};
 
-            for (size_type i{}; i < size; i++)
-                encoded[i] = Encrypt(file[i]);
+            for (size_type i{}; i < size; i++) {
+                int code{static_cast<int>(file[i])};
 
-            auto encoded_pos{path.rfind("_encoded")};
-            auto decoded_pos{path.rfind("_decoded")};
-            if (encoded_pos == std::string::npos)
-                SaveFile(path, "_encoded", encoded);
-            else if (decoded_pos == std::string::npos)
-                SaveFile(path, "_decoded", encoded);
-            else if (encoded_pos < decoded_pos)
-                SaveFile(path, "_encoded", encoded);
-            else if (encoded_pos > decoded_pos)
-                SaveFile(path, "_decoded", encoded);
+                for (int i{}; i < num_rotors; i++)
+                    code = rotors_[i][code];
+
+                code = reflector_[code];
+
+                for (int i{num_rotors - 1}; i >= 0; i--) {
+                    code = rotors_[i].Find(code);
+                    rotors_[i].Shift();
+                }
+
+                encoded[i] = static_cast<char>(code);
+            }
+
+            SaveFile(path, encoded);
         }
     }
 
 private:
-    char Encrypt(char code) {
-        for (int i{}; i < num_rotors_; i++)
-            code = rotors_[i][code];
+    void SaveFile(std::string_view path, const std::vector<char>& cipher) {
+        std::string postfix;
+        auto encoded_pos{path.rfind("_encoded")};
+        auto decoded_pos{path.rfind("_decoded")};
+        if (encoded_pos == std::string::npos)
+            postfix = "_encoded";
+        else if (decoded_pos == std::string::npos)
+            postfix = "_decoded";
+        else if (encoded_pos < decoded_pos)
+            postfix = "_encoded";
+        else if (encoded_pos > decoded_pos)
+            postfix = "_decoded";
 
-        code = reflector_[code];
-
-        for (int i{num_rotors_ - 1}; i >= 0; i--)
-            code = rotors_[i].Find(code);
-
-        ++counter_;
-        uint64_t rotor_queue{1};
-        for (int i{}; i < num_rotors_; i++) {
-            if (counter_ % rotor_queue == 0)
-                rotors_[i].Shift();
-
-            rotor_queue *= alphabet_size_;
-        }
-
-        return code;
-    }
-
-private:
-    void SaveFile(std::string_view path, std::string postfix, const std::vector<char>& cipher) {
         std::string filename(path);
         auto pos{filename.find_last_of(".")};
         if (pos != std::string_view::npos)
@@ -102,7 +95,6 @@ private:
 
 private:
     void ResetConfig() {
-        counter_ = uint64_t();
         reflector_ = config_.reflector_conf;
         rotors_ = config_.rotors_conf;
     }
@@ -121,20 +113,19 @@ private:
 
         while (std::getline(file, line)) {
             std::stringstream substring_stream(line);
-            int i{};
+            std::vector<char> tmp_cfg(alphabet_size_);
+            int index{};
             int code{};
-            std::vector<char> tmp_cfg(128);
 
             while (substring_stream >> code) {
-                tmp_cfg[i] = static_cast<char>(code);
-                ++i;
+                tmp_cfg[index] = static_cast<char>(code);
+                ++index;
             }
 
             Rotor rotor(tmp_cfg);
             rotors_.push_back(rotor);
         }
 
-        num_rotors_ = static_cast<int>(rotors_.size());
         config_ = Config(reflector_, rotors_);
     }
 
@@ -155,10 +146,6 @@ private:
     
 private:
     Config config_;
-
-    int num_rotors_{};
-    uint64_t counter_{};
-
     Reflector reflector_;
     std::vector<Rotor> rotors_;
     tools::filesystem::monitoring fsm_;

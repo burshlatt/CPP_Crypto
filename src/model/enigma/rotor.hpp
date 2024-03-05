@@ -40,10 +40,10 @@ public:
         data_[0] = tmp;
     }
 
-    char Find(char code) {
+    int Find(char code) {
         for (size_type i{}; i < size_; i++)
             if (data_[i] == code)
-                return i;
+                return static_cast<int>(i);
 
         throw std::invalid_argument("Incorrect code: " + std::to_string(code));
     }

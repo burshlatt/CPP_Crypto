@@ -21,7 +21,7 @@ public:
 
 public:
     void Encrypt(std::string_view path) {
-        enigma_->EncryptFile(path);
+        enigma_->Encrypt(path);
     }
 
 private:
