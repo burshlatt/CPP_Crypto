@@ -1,9 +1,19 @@
+// #include <iostream>
+
+// #include "console_view.hpp"
+
+// int main() {
+//     s21::ConsoleView app;
+//     app.RunApp();
+//     return 0;
+// }
+
 #include <iostream>
 
-#include "console_view.hpp"
+#include "rsa.hpp"
 
 int main() {
-    s21::ConsoleView app;
-    app.RunApp();
+    s21::RSA rsa_c;
+    rsa_c.GenerateKeys();
     return 0;
 }
