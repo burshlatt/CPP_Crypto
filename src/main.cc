@@ -14,6 +14,6 @@
 
 int main() {
     s21::RSA rsa_c;
-    rsa_c.GenerateKeys();
+    rsa_c.GenerateKeys(fs::current_path().generic_string());
     return 0;
 }

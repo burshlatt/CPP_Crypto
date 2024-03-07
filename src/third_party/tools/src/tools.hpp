@@ -16,6 +16,7 @@
 #include <string>
 #include <chrono>
 #include <random>
+#include <limits>
 #include <map>
 
 namespace fs = std::filesystem;
@@ -108,7 +109,9 @@ private:
     using time_point = std::chrono::_V2::system_clock::time_point;
 
 public:
-    generator() = delete;
+    generator() :
+        generator(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())
+    {}
 
     explicit generator(value_type min, value_type max) {
         if (std::is_same<value_type, int>::value)
