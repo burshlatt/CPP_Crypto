@@ -105,7 +105,7 @@ private:
                     tools::console::console_clear();
                     tools::console::print_text("HUFFMAN:\n", color::green, mod::bold);
                     tools::console::print_text("1.", color::green, mod::bold, " ");
-                    tools::console::print_text("Select encoded filet\t(" + file_path + ")", color::blue);
+                    tools::console::print_text("Select encoded file\t(" + file_path + ")", color::blue);
                     tools::console::print_text("2.", color::green, mod::bold, " ");
                     tools::console::print_text("Select config file\t(" + config_path + ")\n", color::blue);
                     tools::console::print_text("3. CONFIRM", color::red, mod::bold);
