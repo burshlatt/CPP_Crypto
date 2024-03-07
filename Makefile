@@ -9,11 +9,11 @@ else ifeq ($(OS), Darwin)
     TEST_FLAGS += -lgmock
 endif
 
-.PHONY: all build rebuild open tests clean style leaks
+.PHONY: all build rebuild open tests clean_build clean_test clean style leaks
 
-all: tests build open
+all: tests leaks
 
-build: clean
+build: clean_build
 	mkdir build
 	cd build && rm -rf * && cmake ..
 	cd build && cmake --build .
@@ -24,15 +24,20 @@ rebuild:
 open:
 	cd build && ./Crypto_CPP
 
-tests: clean
+tests: clean_test
 	cd ./tests/ && $(CXX) $(FLAGS) unit_tests.cc -o unit_tests $(TEST_FLAGS)
 	cd ./tests/ && ./unit_tests
-
-clean:
-	rm -rf build tests/unit_tests
 
 style:
 	clang-format -n -style=GOOGLE *.cc */*.cc */*.hpp */*/*.hpp
 
-leaks:
-	rm -rf a.out && g++ -Wall -Werror -Wextra -O3 -std=c++17 src/main.cc && clear && valgrind --leak-check=full ./a.out
+leaks: build
+	valgrind --leak-check=full ./build/Crypto_CPP
+
+clean_build:
+	rm -rf build
+
+clean_test:
+	rm -rf tests/unit_tests
+
+clean: clean_build clean_test

@@ -40,7 +40,7 @@ public:
         data_[0] = tmp;
     }
 
-    int Find(char code) {
+    int Find(char code) const {
         for (size_type i{}; i < size_; i++)
             if (data_[i] == code)
                 return static_cast<int>(i);

@@ -67,7 +67,7 @@ public:
     }
 
 private:
-    void SaveFile(std::string_view path, const std::vector<char>& cipher) {
+    void SaveFile(std::string_view path, const std::vector<char>& cipher) const {
         std::string postfix;
         auto encoded_pos{path.rfind("_encoded")};
         auto decoded_pos{path.rfind("_decoded")};

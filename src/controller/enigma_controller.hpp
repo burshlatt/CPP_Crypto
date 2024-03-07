@@ -9,6 +9,10 @@
 namespace s21 {
 class EnigmaController {
 public:
+    EnigmaController() {
+        enigma_ = std::make_unique<Enigma>();
+    }
+
     explicit EnigmaController(uint8_t num_rotors) {
         enigma_ = std::make_unique<Enigma>(num_rotors);
     }

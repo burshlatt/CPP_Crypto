@@ -9,6 +9,7 @@
 #include "tools.hpp"
 
 #include "enigma_controller.hpp"
+#include "huffman_controller.hpp"
 
 namespace s21 {
 class ConsoleView {
@@ -18,7 +19,10 @@ private:
     using menu  = std::map<int, std::function<void()>>;
 
 public:
-    ConsoleView() = default;
+    ConsoleView() :
+        huffman_controller_(std::make_unique<HuffmanController>())
+    {}
+
     ~ConsoleView() = default;
 
     void RunApp() {
@@ -76,23 +80,76 @@ private:
         }
     }
 
+    void RunHuffman() {
+        while (true) {
+            tools::console::console_clear();
+            tools::console::print_text("HUFFMAN:\n", color::green, mod::bold);
+            tools::console::print_text("1.", color::green, mod::bold, " ");
+            tools::console::print_text("Encrypt file", color::blue);
+            tools::console::print_text("2.", color::green, mod::bold, " ");
+            tools::console::print_text("Decrypt file", color::blue, "", "\n\n");
+            tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
+            tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
+
+            int opt{tools::console::get_correct_int()};
+            if (opt == 1) {
+                std::string file_path{fsm_.get_file_path()};
+
+                if (!file_path.empty())
+                    huffman_controller_->Encrypt(fsm_.get_file_path());
+                    
+            } else if (opt == 2) {
+                std::string file_path{"null"};
+                std::string config_path{"null"};
+                while (true) {
+                    tools::console::console_clear();
+                    tools::console::print_text("HUFFMAN:\n", color::green, mod::bold);
+                    tools::console::print_text("1.", color::green, mod::bold, " ");
+                    tools::console::print_text("Select encoded filet\t(" + file_path + ")", color::blue);
+                    tools::console::print_text("2.", color::green, mod::bold, " ");
+                    tools::console::print_text("Select config file\t(" + config_path + ")\n", color::blue);
+                    tools::console::print_text("3. CONFIRM", color::red, mod::bold);
+                    tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
+                    tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
+
+                    opt = tools::console::get_correct_int();
+                    if (opt == 1)
+                        file_path = fsm_.get_file_path();
+                    else if (opt == 2)
+                        config_path = fsm_.get_file_path();
+                    else if (opt == 0 || opt == 3)
+                        break;
+                }
+
+                if (opt != 0 && file_path != "null" && config_path != "null")
+                    huffman_controller_->Decrypt(file_path, config_path);
+            } else if (opt == 0) {
+                break;
+            }
+        }
+    }
+
 private:
     void ShowMenu() const noexcept {
         tools::console::print_text("MENU:\n", color::green, mod::bold);
         tools::console::print_text("1.", color::green, mod::bold, " ");
-        tools::console::print_text("Enigma", color::blue, "", "\n\n");
+        tools::console::print_text("Enigma", color::blue, "");
+        tools::console::print_text("2.", color::green, mod::bold, " ");
+        tools::console::print_text("Huffman", color::blue, "", "\n\n");
         tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
         tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
     }
 
 private:
     menu menu_{
-        {1, [this]() { RunEnigma(); }}
+        {1, [this]() { RunEnigma(); }},
+        {2, [this]() { RunHuffman(); }}
     };
 
     tools::filesystem::monitoring fsm_;
 
     std::unique_ptr<EnigmaController> enigma_controller_;
+    std::unique_ptr<HuffmanController> huffman_controller_;
 };
 }  // namespace s21
 
