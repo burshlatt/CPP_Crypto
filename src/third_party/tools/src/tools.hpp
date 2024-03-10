@@ -101,54 +101,75 @@ void shuffle(Iterator begin, Iterator end) {
 }
 
 template <typename T>
-class generator {
+class generator_int {
 private:
-    using value_type = T;
     using engine     = std::default_random_engine;
     using duration   = std::chrono::_V2::system_clock::duration;
     using time_point = std::chrono::_V2::system_clock::time_point;
 
 public:
-    generator() :
-        generator(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())
+    generator_int() :
+        generator_int(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())
     {}
 
-    explicit generator(value_type min, value_type max) {
-        if (std::is_same<value_type, int>::value)
-            range_int_ = std::make_unique<std::uniform_int_distribution<>>(min, max);
-        else if (std::is_same<value_type, float>::value)
-            range_real_ = std::make_unique<std::uniform_real_distribution<>>(min, max);
-        else if (std::is_same<value_type, double>::value)
-            range_real_ = std::make_unique<std::uniform_real_distribution<>>(min, max);
-        else
+    explicit generator_int(T min, T max) {
+        if (!std::is_integral<T>::value)
             throw std::invalid_argument("Incorrect type");
-            
+
+        range_int_ = std::make_unique<std::uniform_int_distribution<T>>(min, max); 
         now_ = std::chrono::system_clock::now();
         time_since_ = now_.time_since_epoch();
         engine_ = std::make_unique<engine>(time_since_.count());
     }
 
-    ~generator() = default;
+    ~generator_int() = default;
 
 public:
-    value_type get_random_value() const {
-        if (std::is_same<value_type, int>::value)
-            return (*range_int_)(*engine_);
-        else if (std::is_same<value_type, float>::value)
-            return static_cast<float>((*range_real_)(*engine_));
-        else if (std::is_same<value_type, double>::value)
-            return (*range_real_)(*engine_);
-        else
-            throw std::invalid_argument("Incorrect type");
-        return value_type();
+    T get_random_value() const {
+        return (*range_int_)(*engine_);
     }
 
 private:
     time_point now_;
     duration time_since_;
     std::unique_ptr<engine> engine_;
-    std::unique_ptr<std::uniform_int_distribution<>> range_int_;
-    std::unique_ptr<std::uniform_real_distribution<>> range_real_;
+    std::unique_ptr<std::uniform_int_distribution<T>> range_int_;
+};
+
+template <typename T>
+class generator_real {
+private:
+    using engine     = std::default_random_engine;
+    using duration   = std::chrono::_V2::system_clock::duration;
+    using time_point = std::chrono::_V2::system_clock::time_point;
+
+public:
+    generator_real() :
+        generator_real(std::numeric_limits<T>::min(), std::numeric_limits<T>::max())
+    {}
+
+    explicit generator_real(T min, T max) {
+        if (!std::is_floating_point<T>::value)
+            throw std::invalid_argument("Incorrect type");
+
+        range_real_ = std::make_unique<std::uniform_real_distribution<T>>(min, max);
+        now_ = std::chrono::system_clock::now();
+        time_since_ = now_.time_since_epoch();
+        engine_ = std::make_unique<engine>(time_since_.count());
+    }
+
+    ~generator_real() = default;
+
+public:
+    T get_random_value() const {
+        return (*range_real_)(*engine_);
+    }
+
+private:
+    time_point now_;
+    duration time_since_;
+    std::unique_ptr<engine> engine_;
+    std::unique_ptr<std::uniform_real_distribution<T>> range_real_;
 };
 } // namespace random
 

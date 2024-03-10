@@ -9,11 +9,14 @@
 // }
 
 #include <iostream>
+#include <cmath>
 
 #include "rsa.hpp"
 
 int main() {
     s21::RSA rsa_c;
-    rsa_c.GenerateKeys(fs::current_path().generic_string());
+    rsa_c.GenerateKeys("/mnt/d/Projects/CPP_Crypto/test");
+    rsa_c.Encode("/mnt/d/Projects/CPP_Crypto/test/test_text.txt", "/mnt/d/Projects/CPP_Crypto/test/public_key");
+    rsa_c.Decode("/mnt/d/Projects/CPP_Crypto/test/test_encoded.txt", "/mnt/d/Projects/CPP_Crypto/test/private_key");
     return 0;
 }
