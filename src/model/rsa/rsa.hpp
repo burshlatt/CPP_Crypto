@@ -136,22 +136,6 @@ private:
         return num_a;
     }
 
-    int64_t EuclideanAlgorithm(int64_t a, int64_t b, int64_t& x, int64_t& y) const {
-        if (b == 0) {
-            x = 1;
-            y = 0;
-            return a;
-        }
-
-        int64_t x_a{}, y_a{};
-        int64_t gcd{EuclideanAlgorithm(b, a % b, x_a, y_a)};
-
-        x = y_a;
-        y = x_a - (a / b) * y_a;
-
-        return gcd;
-    }
-
     int64_t EncryptBaseCode(int64_t base, int64_t exponent, int64_t modulus) {
         int64_t result = 1;
 
