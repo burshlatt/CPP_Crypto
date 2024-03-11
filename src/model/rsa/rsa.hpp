@@ -1,9 +1,7 @@
 #ifndef CRYPTO_MODEL_RSA_RSA_HPP
 #define CRYPTO_MODEL_RSA_RSA_HPP
 
-#include <vector>
 #include <memory>
-#include <limits>
 #include <string_view>
 
 #include "tools.hpp"
@@ -21,22 +19,36 @@ public:
     void GenerateKeys(std::string_view dir) {
         fs::path dir_fs(dir);
 
-        tools::random::generator_int<int> r_generator(0, std::numeric_limits<int>::max());
+        static constexpr const int range_min{100};
+        static constexpr const int range_max{10000};
 
-        int num_a{r_generator.get_random_value()};
-        int num_b{r_generator.get_random_value()};
+        tools::random::generator_int<int64_t> r_generator(range_min, range_max);
 
-        while (!IsPrime(num_a))
-            num_a = r_generator.get_random_value();
+        int64_t p{r_generator.get_random_value()};
+        int64_t q{r_generator.get_random_value()};
 
-        while (!IsPrime(num_b))
-            num_b = r_generator.get_random_value();
+        while (!IsPrime(p))
+            p = r_generator.get_random_value();
 
-        auto [public_a, public_b]{GetPublicKeys(num_a, num_b)};
-        auto [private_a, private_b]{GetPrivateKeys(num_a, num_b, public_a)};
+        while (!IsPrime(q) || q == p)
+            q = r_generator.get_random_value();
 
-        std::string public_key{std::to_string(public_a) + " " + std::to_string(public_b)};
-        std::string private_key{std::to_string(private_a) + " " + std::to_string(private_b)};
+        int64_t n{p * q};
+        int64_t phi{(p - 1) * (q - 1)};
+
+        tools::random::generator_int<int64_t> new_r_generator(2, phi - 1);
+        int64_t e{new_r_generator.get_random_value()};
+
+        while (GCD(e, phi) != 1)
+            e = new_r_generator.get_random_value();
+
+        int64_t d{};
+
+        while ((e * d) % phi != 1)
+            d++;
+
+        std::string public_key{std::to_string(e) + " " + std::to_string(n)};
+        std::string private_key{std::to_string(d) + " " + std::to_string(n)};
 
         file_t public_file(dir_fs / "public_key", public_key);
         file_t private_file(dir_fs / "private_key", private_key);
@@ -52,15 +64,22 @@ public:
         std::ifstream key(fs::path(key_path), std::ios::in);
 
         if (key.is_open()) {
-            int64_t p_a{};
-            int64_t p_b{};
+            int64_t k_a{};
+            int64_t k_b{};
 
-            key >> p_a >> p_b;
+            key >> k_a >> k_b;
 
-            std::ofstream encoded_file(fs::path(file_path).replace_filename("test_encoded.txt"), std::ios::out);
+            std::string filename(file_path);
+            auto pos{filename.find_last_of(".")};
+            if (pos != std::string_view::npos)
+                filename.insert(pos, "_encoded");
+            else
+                filename += "_encoded";
+
+            std::ofstream encoded_file(fs::path(filename), std::ios::out);
 
             for (std::size_t i{}; i < size; ++i)
-                encoded_file << EncryptBaseCode(static_cast<int64_t>(file[i]), p_a, p_b) << ' ';
+                encoded_file << EncryptBaseCode(static_cast<int64_t>(file[i]), k_a, k_b) << ' ';
         }
     }
 
@@ -70,57 +89,44 @@ public:
 
         if (key.is_open() && file.is_open()) {
             int64_t tmp{};
-            int64_t p_a{};
-            int64_t p_b{};
+            int64_t k_a{};
+            int64_t k_b{};
 
-            key >> p_a >> p_b;
+            key >> k_a >> k_b;
 
-            std::ofstream decoded_file(fs::path(file_path).replace_filename("test_decoded.txt"), std::ios::out);
+            std::string filename(file_path);
+            auto pos{filename.find_last_of(".")};
+            if (pos != std::string_view::npos)
+                filename.insert(pos, "_decoded");
+            else
+                filename += "_decoded";
+
+            std::ofstream decoded_file(fs::path(filename), std::ios::out);
 
             while (file >> tmp)
-                decoded_file << static_cast<char>(EncryptBaseCode(tmp, p_a, p_b));
+                decoded_file << static_cast<char>(EncryptBaseCode(tmp, k_a, k_b));
         }
     }
 
 private:
-    std::pair<int64_t, int64_t> GetPublicKeys(int64_t num_a, int64_t num_b) const {
-        int64_t key_b{num_a * num_b};
-        int64_t euler_function{(num_a - 1) * (num_b - 1)};
-        tools::random::generator_int<int64_t> new_r_generator(0, euler_function);
-        int64_t key_a{new_r_generator.get_random_value()};
-
-        while (!IsPrime(key_a) && GetGCD(key_a, euler_function) != 1)
-            key_a = new_r_generator.get_random_value();
-
-        return std::make_pair(key_a, key_b);
-    }
-
-    std::pair<int64_t, int64_t> GetPrivateKeys(int64_t num_a, int64_t num_b, int64_t public_key_a) const {
-        int64_t key_b{num_a * num_b};
-        int64_t euler_function{(num_a - 1) * (num_b - 1)};
-        auto [x, y]{EuclideanAlgorithm(euler_function, public_key_a)};
-        int64_t key_a{euler_function - std::abs(std::min(x, y))};
-        return std::make_pair(key_a, key_b);
-    }
-
-    bool IsPrime(int64_t number) const {
-        if (number <= 1)
+    bool IsPrime(int64_t n) {
+        if (n <= 1)
             return false;
 
-        if (number <= 3)
+        if (n <= 3)
             return true;
 
-        if (number % 2 == 0 || number % 3 == 0)
+        if (n % 2 == 0 || n % 3 == 0)
             return false;
 
-        for (int64_t i = 5; i * i <= number; i += 6)
-            if (number % i == 0 || number % (i + 2) == 0)
+        for (int64_t i = 5; i * i <= n; i += 6)
+            if (n % i == 0 || n % (i + 2) == 0)
                 return false;
 
         return true;
     }
 
-    int64_t GetGCD(int64_t num_a, int64_t num_b) const {
+    int64_t GCD(int64_t num_a, int64_t num_b) const {
         while (num_b != 0) {
             int64_t tmp{num_b};
             num_b = num_a % num_b;
@@ -130,28 +136,31 @@ private:
         return num_a;
     }
 
-    std::pair<int64_t, int64_t> EuclideanAlgorithm(int64_t num_a, int64_t num_b) const {
-        if (num_b == 0)
-            return std::make_pair(1, 0);
+    int64_t EuclideanAlgorithm(int64_t a, int64_t b, int64_t& x, int64_t& y) const {
+        if (b == 0) {
+            x = 1;
+            y = 0;
+            return a;
+        }
 
-        std::pair<int64_t, int64_t> prev{EuclideanAlgorithm(num_b, num_a % num_b)};
-        int64_t x{prev.second};
-        int64_t y{prev.first - (num_a / num_b) * prev.second};
+        int64_t x_a{}, y_a{};
+        int64_t gcd{EuclideanAlgorithm(b, a % b, x_a, y_a)};
 
-        return std::make_pair(x, y);
+        x = y_a;
+        y = x_a - (a / b) * y_a;
+
+        return gcd;
     }
 
-    int64_t EncryptBaseCode(int64_t base, int64_t exp, int64_t mod) {
+    int64_t EncryptBaseCode(int64_t base, int64_t exponent, int64_t modulus) {
         int64_t result = 1;
 
-        base = base % mod;
+        while (exponent > 0) {
+            if (exponent % 2 == 1)
+                result = (result * base) % modulus;
 
-        while (exp > 0) {
-            if (exp % 2 == 1)
-                result = (result * base) % mod;
-
-            exp = exp >> 1;
-            base = (base * base) % mod;
+            base = (base * base) % modulus;
+            exponent /= 2;
         }
 
         return result;

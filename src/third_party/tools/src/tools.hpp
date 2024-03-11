@@ -414,6 +414,8 @@ public:
             std::cin >> opt;
             if (opt == "0") {
                 break;
+            } else if (opt == "d") {
+                return path_str;
             } else if (opt == "b") {
                 path = path.parent_path();
             } else if (opt == "c") {
@@ -436,6 +438,7 @@ public:
                 }
             }
         }
+        
         return "";
     }
 
@@ -444,6 +447,7 @@ private:
         console::console_clear();
         console::print_text("DIRS / FILES:\n", color::blue, mod::bold);
         int num{1};
+        dirs_.clear();
         for (const auto& entry : fs::directory_iterator(path)) {
             if (entry.is_directory()) {
                 console::print_text(std::to_string(num) + ".", color::red, "", " ");
@@ -464,6 +468,7 @@ private:
         console::print_text(path, color::blue, mod::bold, "\n\n");
         console::print_text("b. BACK", color::red, mod::bold);
         console::print_text("c. CREATE FILE", color::red, mod::bold);
+        console::print_text("d. SELECT CURRENT DIRECTORY", color::red, mod::bold);
         console::print_text("0. EXIT\n", color::red, mod::bold);
         console::print_text("Select menu item:", color::green, "", " ");
     }

@@ -8,6 +8,7 @@
 
 #include "tools.hpp"
 
+#include "rsa_controller.hpp"
 #include "enigma_controller.hpp"
 #include "huffman_controller.hpp"
 
@@ -19,10 +20,7 @@ private:
     using menu  = std::map<int, std::function<void()>>;
 
 public:
-    ConsoleView() :
-        huffman_controller_(std::make_unique<HuffmanController>())
-    {}
-
+    ConsoleView() = default;
     ~ConsoleView() = default;
 
     void RunApp() {
@@ -96,7 +94,7 @@ private:
                 std::string file_path{fsm_.get_file_path()};
 
                 if (!file_path.empty())
-                    huffman_controller_->Encrypt(fsm_.get_file_path());
+                    huffman_controller_.Encrypt(file_path);
                     
             } else if (opt == 2) {
                 std::string file_path{"null"};
@@ -122,9 +120,75 @@ private:
                 }
 
                 if (opt != 0 && file_path != "null" && config_path != "null")
-                    huffman_controller_->Decrypt(file_path, config_path);
+                    huffman_controller_.Decrypt(file_path, config_path);
             } else if (opt == 0) {
                 break;
+            }
+        }
+    }
+
+    void RunRSA() {
+        while (true) {
+            tools::console::console_clear();
+            tools::console::print_text("RSA:\n", color::green, mod::bold);
+            tools::console::print_text("1.", color::green, mod::bold, " ");
+            tools::console::print_text("Generate keys", color::blue);
+            tools::console::print_text("2.", color::green, mod::bold, " ");
+            tools::console::print_text("Encrypt file", color::blue);
+            tools::console::print_text("3.", color::green, mod::bold, " ");
+            tools::console::print_text("Decrypt file", color::blue, "", "\n\n");
+            tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
+            tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
+
+            int opt{tools::console::get_correct_int()};
+            if (opt == 0) {
+                break;
+            } else if (opt == 1) {
+                std::string dir{fsm_.get_file_path()};
+
+                if (!dir.empty()) {
+                    fs::path dir_fs(dir);
+
+                    if (!fs::is_directory(dir_fs))
+                        dir_fs = dir_fs.remove_filename();
+
+                    rsa_controller_.GenerateKeys(dir_fs.generic_string());
+                }
+            } else if (opt == 2 || opt == 3) {
+                std::string option{"ENCRYPT:"};
+                if (opt == 3)
+                    option = "DECRYPT:";
+
+                std::string file_path{"null"};
+                std::string key_path{"null"};
+                int file_opt{};
+                while (true) {
+                    tools::console::console_clear();
+                    tools::console::print_text("RSA", color::green, mod::bold, " ");
+                    tools::console::print_text(option, color::blue, mod::bold, "\n\n");
+                    tools::console::print_text("1.", color::green, mod::bold, " ");
+                    tools::console::print_text("Select file\t(" + file_path + ")", color::blue);
+                    tools::console::print_text("2.", color::green, mod::bold, " ");
+                    tools::console::print_text("Select key\t(" + key_path + ")\n", color::blue);
+                    tools::console::print_text("3. CONFIRM", color::red, mod::bold);
+                    tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
+                    tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
+
+                    file_opt = tools::console::get_correct_int();
+                    if (file_opt == 1)
+                        file_path = fsm_.get_file_path();
+                    else if (file_opt == 2)
+                        key_path = fsm_.get_file_path();
+                    else if (file_opt == 0 || file_opt == 3)
+                        break;
+                }
+
+                if (file_opt != 0 && file_path != "null" && key_path != "null") {
+                    if (opt == 2)
+                        rsa_controller_.Encrypt(file_path, key_path);
+                    else if (opt == 3)
+                        rsa_controller_.Decrypt(file_path, key_path);
+                }
             }
         }
     }
@@ -133,9 +197,11 @@ private:
     void ShowMenu() const noexcept {
         tools::console::print_text("MENU:\n", color::green, mod::bold);
         tools::console::print_text("1.", color::green, mod::bold, " ");
-        tools::console::print_text("Enigma", color::blue, "");
+        tools::console::print_text("Enigma", color::blue);
         tools::console::print_text("2.", color::green, mod::bold, " ");
-        tools::console::print_text("Huffman", color::blue, "", "\n\n");
+        tools::console::print_text("Huffman", color::blue);
+        tools::console::print_text("3.", color::green, mod::bold, " ");
+        tools::console::print_text("RSA", color::blue, "", "\n\n");
         tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
         tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
     }
@@ -143,13 +209,15 @@ private:
 private:
     menu menu_{
         {1, [this]() { RunEnigma(); }},
-        {2, [this]() { RunHuffman(); }}
+        {2, [this]() { RunHuffman(); }},
+        {3, [this]() { RunRSA(); }}
     };
 
     tools::filesystem::monitoring fsm_;
 
+    RSAController rsa_controller_;
+    HuffmanController huffman_controller_;
     std::unique_ptr<EnigmaController> enigma_controller_;
-    std::unique_ptr<HuffmanController> huffman_controller_;
 };
 }  // namespace s21
 
