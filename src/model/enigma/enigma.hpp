@@ -49,6 +49,11 @@ public:
             for (size_type i{}; i < size; i++) {
                 int code{static_cast<int>(file[i])};
 
+                if (code < 0 || code > 127) {
+                    encoded[i] = file[i];
+                    continue;
+                }
+
                 for (int i{}; i < num_rotors; i++)
                     code = rotors_[i][code];
 

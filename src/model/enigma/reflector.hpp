@@ -11,10 +11,7 @@ public:
     using size_type = std::size_t;
 
 public:
-    Reflector() {
-        // tools::random::shuffle(data_.begin(), data_.end());
-    }
-
+    Reflector() = default;
     ~Reflector() = default;
 
 public:
