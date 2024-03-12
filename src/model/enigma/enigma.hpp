@@ -177,8 +177,9 @@ private:
     Config config_;
     Reflector reflector_;
     std::vector<Rotor> rotors_;
-    tools::filesystem::monitoring fsm_;
     static constexpr const size_type alphabet_size_{128};
+
+    tools::filesystem::monitoring fsm_;
 };
 } // namespace s21
 

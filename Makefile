@@ -1,14 +1,3 @@
-CXX = g++
-FLAGS = -Wall -Werror -Wextra -std=c++17 -O3
-TEST_FLAGS = -lgtest -pthread
-
-OS := $(shell uname)
-ifeq ($(OS), Linux)
-    TEST_FLAGS += -lgtest_main
-else ifeq ($(OS), Darwin) 
-    TEST_FLAGS += -lgmock
-endif
-
 .PHONY: all build rebuild open tests clean_build clean_test clean style leaks
 
 all: tests leaks
@@ -25,8 +14,10 @@ open:
 	cd build && ./Crypto_CPP
 
 tests: clean_test
-	cd ./tests/ && $(CXX) $(FLAGS) unit_tests.cc -o unit_tests $(TEST_FLAGS)
-	cd ./tests/ && ./unit_tests
+	cd tests && mkdir tests_build
+	cd tests/tests_build && rm -rf * && cmake ..
+	cd tests/tests_build && cmake --build .
+	cd tests/tests_build && ./unit_tests
 
 style:
 	clang-format -n -style=GOOGLE *.cc */*.cc */*.hpp */*/*.hpp
@@ -38,6 +29,6 @@ clean_build:
 	rm -rf build
 
 clean_test:
-	rm -rf tests/unit_tests
+	rm -rf tests/tests_build
 
 clean: clean_build clean_test
