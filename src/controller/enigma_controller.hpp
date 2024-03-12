@@ -28,6 +28,10 @@ public:
         enigma_->Encrypt(path);
     }
 
+    void SaveConfig(std::string_view dir) {
+        enigma_->SaveConfig(dir);
+    }
+
 private:
     std::unique_ptr<Enigma> enigma_;
 };

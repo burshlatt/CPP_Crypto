@@ -71,6 +71,30 @@ public:
         }
     }
 
+    void SaveConfig(std::string_view dir) const {
+        fs::path fs_path(dir);
+
+        if (!fs::is_directory(fs_path))
+            fs_path = fs_path.remove_filename();
+
+        fs_path /= "enigma_config.cfg";
+
+        std::ofstream file(fs_path, std::ios::out);
+
+        if (!file.is_open()) {
+            std::string error_text{"Error: Cannot create file: "};
+            std::string filename{fs_path.filename().generic_string()};
+            throw std::ios_base::failure(error_text + filename);
+        }
+
+        for (const auto& rotor : rotors_) {
+            for (std::size_t i{}; i < alphabet_size_; ++i)
+                file << static_cast<int>(rotor[i]) << ' ';
+
+            file << '\n';
+        }
+    }
+
 private:
     void SaveFile(std::string_view path, const std::vector<char>& cipher) const {
         std::string postfix;

@@ -47,7 +47,7 @@ private:
             tools::console::print_text("1.", color::green, mod::bold, " ");
             tools::console::print_text("Set a random configuration", color::blue);
             tools::console::print_text("2.", color::green, mod::bold, " ");
-            tools::console::print_text("Read configuration file\n", color::blue);
+            tools::console::print_text("Load configurations\n", color::blue);
             tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
             tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
 
@@ -66,13 +66,17 @@ private:
                 tools::console::console_clear();
                 tools::console::print_text("ENIGMA:\n", color::green, mod::bold);
                 tools::console::print_text("1.", color::green, mod::bold, " ");
-                tools::console::print_text("Select a file\n", color::blue);
+                tools::console::print_text("Select a file", color::blue);
+                tools::console::print_text("2.", color::green, mod::bold, " ");
+                tools::console::print_text("Save configurations\n", color::blue);
                 tools::console::print_text("0. EXIT", color::red, mod::bold, "\n\n");
                 tools::console::print_text("Select menu item:", color::green, mod::bold, " ");
 
                 opt = tools::console::get_correct_int();
                 if (opt == 1)
                     enigma_controller_->Encrypt(fsm_.get_file_path());
+                else if (opt == 2)
+                    enigma_controller_->SaveConfig(fsm_.get_file_path());
                 else if (opt == 0)
                     break;
             }
