@@ -30,5 +30,7 @@ clean_build:
 
 clean_test:
 	rm -rf tests/tests_build
+	cd datasets/files && rm -rf *_encoded* *_decoded*
+	cd datasets/configurations && rm -rf public_key private_key
 
 clean: clean_build clean_test

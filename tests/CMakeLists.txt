@@ -5,7 +5,6 @@ project(Crypto_tests)
 set(CMAKE_CXX_STANDARD 17)
 
 find_package(GTest REQUIRED)
-# include_directories(${GTEST_INCLUDE_DIRS})
 
 set(TEST_SOURCES 
     unit_tests.cc
