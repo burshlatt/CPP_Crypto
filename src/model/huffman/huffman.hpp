@@ -175,9 +175,9 @@ private:
         std::string filename(path);
         auto pos{filename.find_last_of(".")};
         if (pos != std::string_view::npos)
-            filename.insert(pos, "_encoded");
+            filename.insert(pos, "_encoded_huffman");
         else
-            filename += "_encoded";
+            filename += "_encoded_huffman";
 
         std::ostringstream string_stream;
 

@@ -19,9 +19,6 @@ tests: clean_test
 	cd tests/tests_build && cmake --build .
 	cd tests/tests_build && ./unit_tests
 
-style:
-	clang-format -n -style=GOOGLE *.cc */*.cc */*.hpp */*/*.hpp
-
 leaks: build
 	valgrind --leak-check=full ./build/Crypto_CPP
 
@@ -30,7 +27,7 @@ clean_build:
 
 clean_test:
 	rm -rf tests/tests_build
-	cd datasets/files && rm -rf *_encoded* *_decoded*
+	cd datasets/files && rm -rf *_encoded* *_decoded* *.cfg
 	cd datasets/configurations && rm -rf public_key private_key
 
 clean: clean_build clean_test
