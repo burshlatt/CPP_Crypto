@@ -39,7 +39,7 @@ public:
         tools::random::generator_int<int64_t> new_r_generator(2, phi - 1);
         int64_t e{new_r_generator.get_random_value()};
 
-        while (GCD(e, phi) != 1)
+        while (std::gcd(e, phi) != 1)
             e = new_r_generator.get_random_value();
 
         int64_t d{};
@@ -124,16 +124,6 @@ private:
                 return false;
 
         return true;
-    }
-
-    int64_t GCD(int64_t num_a, int64_t num_b) const {
-        while (num_b != 0) {
-            int64_t tmp{num_b};
-            num_b = num_a % num_b;
-            num_a = tmp;
-        }
-
-        return num_a;
     }
 
     int64_t EncryptBaseCode(int64_t base, int64_t exponent, int64_t modulus) {
